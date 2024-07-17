@@ -123,6 +123,52 @@ class TeslaStock():
         f"Mean Absolute Error: {mean_absolute_error(y_test, y_pred):.4f} | "
         f"Coefficient of Determination: {r2_score(y_test, y_pred):.4f}")
 
+    def predict_future_prices(self, model, start_date, periods, adj_close_col):
+        """
+        Predict future stock prices using the trained model.
+
+        param1: trained linear regression model
+        param2: start date for predictions
+        param3: number of periods (days) to predict
+        param4: adjusted closing price column
+        return: DataFrame with future dates and predicted prices
+        """
+        future_dates = pd.date_range(start=start_date, periods=periods, freq='D')
+        last_adj_close = self.df[adj_close_col].iloc[-1]
+
+        future_df = pd.DataFrame(future_dates, columns=['Date'])
+        future_df[adj_close_col] = np.nan  # Initialize with NaN
+
+        # Iteratively predict future prices
+        for i in range(len(future_df)):
+            if i == 0:
+                future_df.at[i, adj_close_col] = last_adj_close
+            else:
+                future_df.at[i, adj_close_col] = model.predict(np.array([[future_df.at[i-1, adj_close_col]]]))
+
+        return future_df
+
+    def plot_predictions(self, filtered_df, future_df, adj_close_col):
+        """
+        Plot actual and predicted stock prices.
+
+        param1: filtered DataFrame with actual prices
+        param2: DataFrame with future dates and predicted prices
+        param3: adjusted closing price column
+        return: line plot
+        """
+        plt.figure(figsize=(10, 6))
+
+        sns.lineplot(x=filtered_df['Date'], y=filtered_df[adj_close_col], label='Actual Prices')
+        sns.lineplot(x=future_df['Date'], y=future_df[adj_close_col], label='Predicted Prices')
+
+        plt.title('Actual and Predicted Stock Prices')
+        plt.xlabel('Date')
+        plt.ylabel('Stock Price')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
 
         
     
@@ -154,7 +200,7 @@ X_train, X_test, y_train, y_test = train_test_split(ema[['Adj Close']], ema[['em
 
 from sklearn.linear_model import LinearRegression
 
-# Building the running the Linear Regression Model
+# Building and running the Linear Regression Model
 model = LinearRegression()
 model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
@@ -176,6 +222,12 @@ plt.ylabel('Predicted Values')
 plt.legend()
 plt.grid(True)
 plt.show()
+
+# Predict future stock prices
+future_df = tesla_stock.predict_future_prices(model, '2024-01-02', 30, 'Adj Close')
+
+# Plot actual and predicted stock prices
+tesla_stock.plot_predictions(filtered_df, future_df, 'Adj Close')
 
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
@@ -235,6 +287,44 @@ plt.plot(scaler.inverse_transform(np.concatenate((y_test[:zoom_range].reshape(-1
 plt.plot(predictions[:zoom_range], color='red', label='Predicted', alpha=0.6)
 plt.title('Stock Price Prediction (Zoomed-In)')
 plt.xlabel('Sample')
+plt.ylabel('Stock Price')
+plt.legend()
+plt.show()
+
+# Predict future prices
+def predict_future_prices_rnn(model, scaled_data, window_size, days_to_predict):
+    future_prices = []
+
+    last_window = scaled_data[-window_size:, 0]  # Take the last window_size days from the data
+
+    for _ in range(days_to_predict):
+        input_data = last_window.reshape((1, window_size, 1))
+        predicted_price = model.predict(input_data)[0, 0]
+        future_prices.append(predicted_price)
+
+        # Update the last_window by removing the first element and adding the predicted price
+        last_window = np.append(last_window[1:], predicted_price)
+
+    return future_prices
+
+# Number of future days to predict
+days_to_predict = 30
+
+# Predict future prices
+future_predictions = predict_future_prices_rnn(model, scaled_data, window_size, days_to_predict)
+
+# Transform the predictions back to the original scale
+future_predictions = scaler.inverse_transform(np.concatenate((np.array(future_predictions).reshape(-1, 1), np.zeros((len(future_predictions), 2))), axis=1))[:, 0]
+
+# Create future dates for plotting
+future_dates = pd.date_range(start=df['Date'].iloc[-1] + pd.Timedelta(days=1), periods=days_to_predict, freq='D')
+
+# Plot the historical and future predictions
+plt.figure(figsize=(14, 7))
+plt.plot(df['Date'], df['Adj Close'], label='Historical Prices')
+plt.plot(future_dates, future_predictions, label='Predicted Future Prices', linestyle='--', color='red')
+plt.title('Stock Price Prediction')
+plt.xlabel('Date')
 plt.ylabel('Stock Price')
 plt.legend()
 plt.show()
