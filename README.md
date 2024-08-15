@@ -42,5 +42,43 @@ Let's take a look at the result of the EMA averages being added alongside our cu
 <br/>
 <br/>
 <img src="https://i.imgur.com/CwFULFZ.png" height="40%" width="50%" alt="albums"/>
+<br/>
+Our EMA technical indicator seems to track along our data points quite nicely, this is a good sign.
+<br/>
+<br/>
+With our data prepared and an appropriate technical indicator attached, we can finally split our data into test and train sets and run our first model: good 'ol linear regression. We'll be looking at the relationship between our EMA values and our actual values to see if the EMA indicator is a good fit. Plotting out the line of best fit from our data points, we get this graph:
+<br/>
+<br/>
+<img src="https://i.imgur.com/lTFoORN.png" height="40%" width="50%" alt="albums"/>
+<br/>
+Good news! We see a very clear positive trend here and our model coefficients, mean absolute error, and coeffecient of determination (R<sup>2</sup>) can confirm this:
+<br/>
+<br/>
+<img src="https://i.imgur.com/ZMpGz3u.png" height="80%" width="80%" alt="albums"/>
+<br/>
+Having a high <b>model coefficient</b> tells us that we have a strong positive relationship between our actual values and EMA values. Our mean absolute error, or MAE, indicates the averaged absolute differences between our different variables. With data points on a magnitude scale in the 100s, a MAE score of around 3 tells us that there is very little error in our data points. Lastly, the coefficient of determination, or the R<sup>2</sup> score, shows how much percentage change in our dependent variable is explained by our independent variable. Once again, a very high value of 99% indicates a good fit of our EMA points!
+<br/>
+<br/>
+We'll now be looking at a more involved method of for predicting future data points; namely a recurrent neural network (RNN). The reason we use an RNN is because of its unique disposition to retain information from previous inputs which is helpful for time series forcasting, or in our case, stock prediction.
+<br/>
+<br/>
+After some quick data reshaping, we will begin to build our different layers:
+<br/>
+<br/>
+<img src="https://i.imgur.com/jpz497u.png" height="40%" width="80%" alt="albums"/>
+<br/>
+We opt to use a specific type of RNN called a long short-term memory network, or LSTM. In short, LSTMs operate using a series of cell states and gates to control the flow and memory of the network. We choose LSTMs in particular because of their strong tendency to adapt to long-term dependencies. For each layer except for the dense (output) layer, we use 50 neurons and add an additional dropout layer to mitigate overfitting.
+<br/>
+<br/>
+With our layers built, we apply the 'adam' optimizer and run the network over 50 epochs. To finalize, we graph out the prediction for 30 days past the last recorded price change and this is what we get:
+<br/>
+<br/>
+<img src="https://i.imgur.com/8t5Gao9.png" height="40%" width="80%" alt="albums"/>
+<br/>
+<br/>
+The last entry in our dataset was in mid June. Taking a look at the current price trend in TESLA stock, we can see that our model made a fairly accurate prediction:
+<br/>
+<br/>
+<img src="https://i.imgur.com/yqFjvrz.png" height="40%" width="80%" alt="albums"/>
 
 
